@@ -16,9 +16,13 @@ local dst_file
 local force_rename=false
 local guess=true
 local verbose=false
+local cmd="mv"
 
-while getopts 'hfdv' flag; do
+while getopts 'hcfdv' flag; do
     case "$flag" in
+        c)
+            cmd="cp"
+            ;;
         f)
             force_rename=true
             ;;
@@ -52,4 +56,4 @@ if $verbose; then
     echo "mv ${(@)src} \"${dst_dir}/${dst_file}\""
 fi
 
-mkdir -p "${dst_dir}" && mv ${(@)src} "${dst_dir}/${dst_file}"
+mkdir -p "${dst_dir}" && ${cmd} ${(@)src} "${dst_dir}/${dst_file}"
