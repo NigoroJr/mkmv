@@ -29,7 +29,7 @@ local verbose=false
 local cmd="mv"
 local -a cmd_args
 
-while getopts 'hcdv' flag; do
+while getopts 'cdlvh' flag; do
     case "$flag" in
         c)
             cmd="cp"
@@ -38,11 +38,15 @@ while getopts 'hcdv' flag; do
         d)
             force_rename_dir=true
             ;;
+        l)
+            cmd="ln"
+            cmd_args=( "-s" )
+            ;;
         v)
             verbose=true
             ;;
         h)
-            echo "Usage: $0 [-h] [-f] [-d] <src [src...]> <dst>"
+            echo "Usage: $0 [-h] [-c] [-d] [-l] <src [src...]> <dst>"
             exit 0
     esac
 
