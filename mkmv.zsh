@@ -1,33 +1,42 @@
 #!/usr/bin/env zsh
 
-# If all of the following conditions are met, treats destination as file
-# (i.e. mkdir the dirname, and move & rename to basename).
+# Creates the destination directory and moves the source files/directories
+# into it. For example,
 #
-# - there is only one source
-# - that source is a file
-# - basename of the destination has an extension
+#   $ mkmv foo.txt bar/ ~/baz
 #
-# To suppress this behavior and treat destination as directory, use the -d option.
-# To force treating destination as a file, use the -f option.
+# will create ~/baz and move foo.txt and bar/ into it.
+#
+#   $ mkmv foo/ ~/bar/baz/
+#
+# will create ~/bar/baz/ and move foo/ into it (i.e. ~/bar/baz/foo/ is the
+# resulting structure you will get).
+#
+# If you want to instead move & rename foo/ to baz/, use the -d option.
+#
+#   $ mkmv -d foo/ ~/bar/baz/
+#
+# will create ~/bar/ and then move & rename foo/ to ~/bar/baz/ (i.e. the
+# resulting structure is ~/bar/foo/).
 
 local -a src
-local dst_dir
-local dst_file
-local force_rename=false
-local guess=true
+# Argument passed to mkdir
+local dir_to_create
+# Argument passed to mv
+local move_dst
+local force_rename_dir=false
 local verbose=false
 local cmd="mv"
+local -a cmd_args
 
-while getopts 'hcfdv' flag; do
+while getopts 'hcdv' flag; do
     case "$flag" in
         c)
             cmd="cp"
-            ;;
-        f)
-            force_rename=true
+            cmd_args=( "-r" )
             ;;
         d)
-            guess=false
+            force_rename_dir=true
             ;;
         v)
             verbose=true
@@ -41,19 +50,26 @@ done
 shift $(( $OPTIND - 1 ))
 
 src=( ${(@)argv[1,-2]} )
-dst_dir="${argv[-1]}"
-dst_file=""
+dir_to_create="${argv[-1]}"
+move_dst="${dir_to_create}/"
 
-if $force_rename || \
-        (( $#src == 1 )) && [[ -f $src[1] ]] && \
-        [[ -n $dst_dir:e ]] && $guess; then
-    dst_file="${dst_dir:t}"
-    dst_dir="${dst_dir:h}"
+if $force_rename_dir; then
+    if (( $#src == 1 )) && [[ -d $src[1] ]] && [[ ! -d $move_dst ]]; then
+        move_dst="${dir_to_create}"
+        dir_to_create="${dir_to_create:h}"
+    else
+        cat >&2 <<EOF
+When -d is specified, usage is:
+    $0 -d <src> <dst>
+where src and dst are both directories, and dst needs to be non-existant.
+EOF
+        exit 1
+    fi
 fi
 
 if $verbose; then
-    echo "mkdir -p \"${dst_dir}\""
-    echo "mv ${(@)src} \"${dst_dir}/${dst_file}\""
+    echo "mkdir -p \"${dir_to_create}\""
+    echo "${cmd} ${(@)cmd_args} ${(@)src} \"${move_dst}\""
 fi
 
-mkdir -p "${dst_dir}" && ${cmd} ${(@)src} "${dst_dir}/${dst_file}"
+mkdir -p "${dir_to_create}" && ${cmd} ${(@)cmd_args} ${(@)src} "${move_dst}"
